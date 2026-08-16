@@ -2,7 +2,7 @@ name: Deploy su GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, claude/app-tracciamento-allattamento-j7bxmf]
   workflow_dispatch:
 
 permissions:

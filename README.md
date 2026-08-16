@@ -9,21 +9,23 @@ Non serve l'App Store, non serve un Mac, non serve un account.
 
 ---
 
-## 1. Metterla online (una volta sola, 2 minuti)
+## 1. Metterla online (una volta sola, 1 minuto)
 
-Il codice è già pronto per GitHub Pages.
+Il codice è già pronto per GitHub Pages, e il branch `claude/app-tracciamento-allattamento-j7bxmf`
+è il branch predefinito del repository: non serve nessun merge.
 
-1. Vai su **Settings → Pages** del repository `persandreastagi/poppapp`.
-2. In *Build and deployment → Source* scegli **GitHub Actions** e salva.
-3. Fai il merge di questo branch su `main`: il workflow `.github/workflows/pages.yml` pubblica il sito da solo.
-4. Dopo un minuto l'app è all'indirizzo:
+1. Apri **https://github.com/persandreastagi/PoppApp/settings/pages**
+2. In *Build and deployment → Source* scegli **GitHub Actions**.
+3. Vai su **Actions → Deploy su GitHub Pages → Run workflow** (oppure aspetta il push successivo:
+   il workflow `.github/workflows/pages.yml` gira da solo a ogni push su questo branch).
+4. Dopo un paio di minuti l'app è online a:
 
    ```
-   https://persandreastagi.github.io/poppapp/
+   https://persandreastagi.github.io/PoppApp/
    ```
 
-> In alternativa, in *Source* puoi scegliere **Deploy from a branch** → branch `main`, cartella `/ (root)`:
-> funziona ugualmente, il workflow diventa superfluo.
+> Alternativa senza Actions: in *Source* scegli **Deploy from a branch**, branch
+> `claude/app-tracciamento-allattamento-j7bxmf`, cartella `/ (root)`, e salva. Stesso indirizzo finale.
 
 ## 2. Installarla sull'iPhone
 
