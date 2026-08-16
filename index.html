@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PoppApp</title>
+<meta name="description" content="Diario delle poppate: orario e quantità in ml, con esportazione CSV.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PoppApp">
+<meta name="theme-color" content="#6d5df6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12121a" media="(prefers-color-scheme: dark)">
+<style>
+  :root{
+    --bg:#f4f5fa; --card:#ffffff; --text:#14151c; --muted:#6b6f80;
+    --line:#e3e5ee; --accent:#6d5df6; --accent-soft:#efedff;
+    --danger:#d92d4b; --ok:#0f9d58;
+    --radius:16px; --shadow:0 1px 2px rgba(20,21,28,.06), 0 8px 24px rgba(20,21,28,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1016; --card:#191b24; --text:#f2f3f8; --muted:#9aa0b4;
+      --line:#282b38; --accent:#8f83ff; --accent-soft:#232338;
+      --danger:#ff6b83; --ok:#43c98a;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font:16px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    padding:calc(env(safe-area-inset-top) + 14px) 16px 12px;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:saturate(180%) blur(14px);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  header h1{margin:0; font-size:22px; font-weight:700; letter-spacing:-.4px}
+  header p{margin:2px 0 0; font-size:13px; color:var(--muted)}
+  main{padding:16px; max-width:640px; margin:0 auto}
+  section[hidden]{display:none}
+
+  .card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:14px}
+  .card h2{margin:0 0 12px; font-size:15px; font-weight:650; letter-spacing:-.2px}
+  .card h2 .sub{font-weight:400; color:var(--muted)}
+
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; text-align:center}
+  .stat b{display:block; font-size:24px; font-weight:700; letter-spacing:-.6px}
+  .stat span{font-size:12px; color:var(--muted)}
+
+  label{display:block; font-size:13px; color:var(--muted); margin:0 0 6px}
+  .row{display:flex; gap:10px}
+  .row > *{flex:1; min-width:0}
+  input, select, textarea{
+    width:100%; font-size:16px; font-family:inherit; color:var(--text);
+    background:var(--bg); border:1px solid var(--line); border-radius:12px;
+    padding:12px; appearance:none;
+  }
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent}
+  .field{margin-bottom:12px}
+
+  .ml-input{display:flex; align-items:center; gap:8px}
+  .ml-input input{text-align:center; font-size:26px; font-weight:700; padding:10px}
+  .step{
+    flex:0 0 52px; height:52px; border-radius:14px; border:1px solid var(--line);
+    background:var(--card); color:var(--text); font-size:24px; font-weight:600; cursor:pointer;
+  }
+  .step:active{background:var(--accent-soft)}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  .chip{
+    border:1px solid var(--line); background:var(--card); color:var(--text);
+    border-radius:999px; padding:8px 14px; font-size:14px; font-weight:550; cursor:pointer;
+  }
+  .chip:active{background:var(--accent-soft); border-color:var(--accent)}
+
+  button.primary{
+    width:100%; border:0; border-radius:14px; padding:15px;
+    background:var(--accent); color:#fff; font-size:17px; font-weight:650; cursor:pointer;
+  }
+  button.primary:active{filter:brightness(.92)}
+  button.secondary{
+    width:100%; border:1px solid var(--line); border-radius:14px; padding:13px;
+    background:var(--card); color:var(--text); font-size:15px; font-weight:600; cursor:pointer;
+  }
+  button.secondary:active{background:var(--accent-soft)}
+  button.danger{color:var(--danger); border-color:color-mix(in srgb, var(--danger) 35%, var(--line))}
+  .btn-row{display:flex; gap:10px; margin-top:10px}
+
+  ul.list{list-style:none; margin:0; padding:0}
+  ul.list li{
+    display:flex; align-items:center; gap:12px; padding:12px 4px;
+    border-top:1px solid var(--line); cursor:pointer;
+  }
+  ul.list li:first-child{border-top:0}
+  .time{font-variant-numeric:tabular-nums; font-weight:650; font-size:16px; min-width:52px}
+  .qty{margin-left:auto; font-weight:700; font-size:17px; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .note{font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .empty{color:var(--muted); font-size:14px; text-align:center; padding:18px 0}
+
+  .day{display:flex; align-items:baseline; justify-content:space-between; margin:0 0 8px}
+  .day b{font-size:15px; text-transform:capitalize}
+  .day span{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
+
+  nav{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    display:flex; border-top:1px solid var(--line);
+    background:color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter:saturate(180%) blur(14px);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1; border:0; background:none; color:var(--muted); cursor:pointer;
+    padding:9px 0 7px; font-size:11px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav button svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
+  nav button[aria-selected="true"]{color:var(--accent)}
+
+  dialog{
+    border:0; padding:0; background:transparent; width:100%; max-width:480px;
+    margin:auto auto 0; color:var(--text);
+  }
+  dialog::backdrop{background:rgba(0,0,0,.45); backdrop-filter:blur(2px)}
+  .sheet{
+    background:var(--card); border-radius:20px 20px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  }
+  .sheet h3{margin:0 0 14px; font-size:17px}
+  @media (min-width:520px){
+    dialog{margin:auto}
+    .sheet{border-radius:20px}
+  }
+
+  #toast{
+    position:fixed; left:50%; transform:translate(-50%,20px); bottom:calc(88px + env(safe-area-inset-bottom));
+    background:var(--text); color:var(--bg); padding:11px 18px; border-radius:999px;
+    font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:.22s; z-index:50; max-width:90vw; text-align:center;
+  }
+  #toast.show{opacity:1; transform:translate(-50%,0)}
+  .hint{font-size:12.5px; color:var(--muted); margin:10px 0 0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="tabTitle">Oggi</h1>
+  <p id="tabSubtitle"></p>
+</header>
+
+<main>
+  <!-- ───────────────────────── OGGI ───────────────────────── -->
+  <section id="tab-oggi">
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><b id="sToday">0</b><span>ml oggi</span></div>
+        <div class="stat"><b id="sCount">0</b><span>poppate</span></div>
+        <div class="stat"><b id="sLast">–</b><span>ultima</span></div>
+      </div>
+    </div>
+
+    <form class="card" id="addForm">
+      <h2>Nuova poppata</h2>
+      <div class="row field">
+        <div>
+          <label for="fDate">Giorno</label>
+          <input type="date" id="fDate" required>
+        </div>
+        <div>
+          <label for="fTime">Orario</label>
+          <input type="time" id="fTime" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fMl">Quantità (ml)</label>
+        <div class="ml-input">
+          <button type="button" class="step" data-delta="-10" aria-label="Meno 10 ml">−</button>
+          <input type="number" id="fMl" inputmode="numeric" min="0" max="2000" step="5" value="90" required>
+          <button type="button" class="step" data-delta="10" aria-label="Più 10 ml">+</button>
+        </div>
+        <div class="chips" id="mlChips"></div>
+      </div>
+
+      <div class="field">
+        <label for="fNote">Note (facoltative)</label>
+        <input type="text" id="fNote" placeholder="es. seno destro, rigurgito…" maxlength="120">
+      </div>
+
+      <button class="primary" type="submit">Salva poppata</button>
+    </form>
+
+    <div class="card">
+      <h2>Poppate del giorno <span class="sub" id="dayLabel"></span></h2>
+      <ul class="list" id="todayList"></ul>
+    </div>
+  </section>
+
+  <!-- ──────────────────────── STORICO ─────────────────────── -->
+  <section id="tab-storico" hidden>
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><b id="hDays">0</b><span>giorni</span></div>
+        <div class="stat"><b id="hTotal">0</b><span>poppate</span></div>
+        <div class="stat"><b id="hAvg">0</b><span>ml/giorno (7gg)</span></div>
+      </div>
+    </div>
+    <div id="historyBox"></div>
+  </section>
+
+  <!-- ──────────────────────── ESPORTA ─────────────────────── -->
+  <section id="tab-esporta" hidden>
+    <div class="card">
+      <h2>Intervallo di date</h2>
+      <div class="row field">
+        <div>
+          <label for="xFrom">Dal</label>
+          <input type="date" id="xFrom">
+        </div>
+        <div>
+          <label for="xTo">Al</label>
+          <input type="date" id="xTo">
+        </div>
+      </div>
+      <div class="chips">
+        <button type="button" class="chip" data-range="7">Ultimi 7 giorni</button>
+        <button type="button" class="chip" data-range="30">Ultimi 30 giorni</button>
+        <button type="button" class="chip" data-range="month">Questo mese</button>
+        <button type="button" class="chip" data-range="all">Tutto</button>
+      </div>
+      <p class="hint" id="xCount"></p>
+    </div>
+
+    <div class="card">
+      <h2>Esporta CSV</h2>
+      <div class="field">
+        <label for="xSep">Separatore colonne</label>
+        <select id="xSep">
+          <option value=";">Punto e virgola ; (Excel italiano)</option>
+          <option value=",">Virgola , (standard / Fogli Google)</option>
+        </select>
+      </div>
+      <button class="primary" id="xDetail" type="button">Esporta dettaglio poppate</button>
+      <div class="btn-row">
+        <button class="secondary" id="xDaily" type="button">Riepilogo giornaliero</button>
+      </div>
+      <p class="hint">Su iPhone si apre il menu di condivisione: puoi salvare il file in <b>File</b>, inviarlo via mail o su WhatsApp.</p>
+    </div>
+
+    <div class="card">
+      <h2>Backup</h2>
+      <div class="btn-row">
+        <button class="secondary" id="bExport" type="button">Esporta backup</button>
+        <button class="secondary" id="bImport" type="button">Importa backup</button>
+      </div>
+      <input type="file" id="bFile" accept="application/json,.json" hidden>
+      <p class="hint">I dati sono salvati solo su questo iPhone: nessun server, nessun account. Fai un backup ogni tanto (il file .json si reimporta anche su un altro telefono).</p>
+      <div class="btn-row">
+        <button class="secondary danger" id="bWipe" type="button">Cancella tutti i dati</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav role="tablist">
+  <button role="tab" data-tab="oggi" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M12 20v-8m0 0a4 4 0 0 1 4-4h1a5 5 0 0 1-5 4Zm0 0a4 4 0 0 0-4-4H7a5 5 0 0 0 5 4Z"/><circle cx="12" cy="5" r="2"/></svg>
+    Oggi
+  </button>
+  <button role="tab" data-tab="storico" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18M8 15h4"/></svg>
+    Storico
+  </button>
+  <button role="tab" data-tab="esporta" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4L8 8M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    Esporta
+  </button>
+</nav>
+
+<dialog id="editDlg">
+  <form method="dialog" class="sheet" id="editForm">
+    <h3>Modifica poppata</h3>
+    <div class="row field">
+      <div>
+        <label for="eDate">Giorno</label>
+        <input type="date" id="eDate" required>
+      </div>
+      <div>
+        <label for="eTime">Orario</label>
+        <input type="time" id="eTime" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="eMl">Quantità (ml)</label>
+      <input type="number" id="eMl" inputmode="numeric" min="0" max="2000" step="5" required>
+    </div>
+    <div class="field">
+      <label for="eNote">Note</label>
+      <input type="text" id="eNote" maxlength="120">
+    </div>
+    <button class="primary" value="save" type="submit">Salva modifiche</button>
+    <div class="btn-row">
+      <button class="secondary" value="cancel" type="button" id="eCancel">Annulla</button>
+      <button class="secondary danger" value="delete" type="button" id="eDelete">Elimina</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const KEY = 'poppapp.entries.v1';
+  const PREFS = 'poppapp.prefs.v1';
+  const $ = (sel) => document.querySelector(sel);
+
+  /* ───────────────────────── dati ───────────────────────── */
+
+  let entries = load();
+
+  function load() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(KEY) || '[]');
+      return Array.isArray(raw) ? raw.filter(valid) : [];
+    } catch { return []; }
+  }
+  function valid(e) {
+    return e && typeof e.ts === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(e.ts) && Number.isFinite(e.ml);
+  }
+  function save() {
+    entries.sort((a, b) => b.ts.localeCompare(a.ts));
+    localStorage.setItem(KEY, JSON.stringify(entries));
+  }
+  const prefs = (() => {
+    try { return JSON.parse(localStorage.getItem(PREFS) || '{}'); } catch { return {}; }
+  })();
+  function savePrefs() { localStorage.setItem(PREFS, JSON.stringify(prefs)); }
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  /* ─────────────────────── date/ora ─────────────────────── */
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateStr = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const timeStr = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const dayOf = (ts) => ts.slice(0, 10);
+  const hourOf = (ts) => ts.slice(11, 16);
+
+  const fmtLong = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+  const fmtShort = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  function labelDay(day, long = false) {
+    const today = dateStr();
+    const yest = dateStr(new Date(Date.now() - 864e5));
+    if (day === today) return 'Oggi';
+    if (day === yest) return 'Ieri';
+    const [y, m, d] = day.split('-').map(Number);
+    return (long ? fmtLong : fmtShort).format(new Date(y, m - 1, d));
+  }
+  function sinceLabel(ts) {
+    const [d, t] = ts.split('T'), [y, mo, da] = d.split('-').map(Number), [h, mi] = t.split(':').map(Number);
+    const mins = Math.round((Date.now() - new Date(y, mo - 1, da, h, mi).getTime()) / 60000);
+    if (mins < 0) return 'programmata';
+    if (mins < 60) return `${mins} min fa`;
+    const hh = Math.floor(mins / 60), mm = mins % 60;
+    return mm ? `${hh}h ${mm}min fa` : `${hh}h fa`;
+  }
+
+  /* ───────────────────────── UI ─────────────────────────── */
+
+  let toastTimer;
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  const fmtFull = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const TITLES = {
+    oggi: ['Oggi', () => fmtFull.format(new Date())],
+    storico: ['Storico', () => `${entries.length} poppate registrate`],
+    esporta: ['Esporta', () => 'CSV per intervallo di date'],
+  };
+
+  function showTab(name) {
+    for (const s of document.querySelectorAll('main section')) s.hidden = (s.id !== 'tab-' + name);
+    for (const b of document.querySelectorAll('nav button')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+    $('#tabTitle').textContent = TITLES[name][0];
+    $('#tabSubtitle').textContent = TITLES[name][1]();
+    window.scrollTo(0, 0);
+    render();
+  }
+
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  /* ────────────────────── inserimento ───────────────────── */
+
+  const QUICK_ML = [30, 60, 90, 120, 150, 180];
+  $('#mlChips').innerHTML = QUICK_ML.map((v) => `<button type="button" class="chip" data-ml="${v}">${v} ml</button>`).join('');
+  $('#mlChips').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ml]');
+    if (b) { $('#fMl').value = b.dataset.ml; haptic(); }
+  });
+
+  document.querySelectorAll('.step').forEach((b) => b.addEventListener('click', () => {
+    const inp = $('#fMl');
+    inp.value = Math.max(0, (parseInt(inp.value, 10) || 0) + Number(b.dataset.delta));
+    haptic();
+  }));
+
+  function haptic() { if (navigator.vibrate) navigator.vibrate(8); }
+
+  function resetForm() {
+    $('#fDate').value = dateStr();
+    $('#fTime').value = timeStr();
+    $('#fMl').value = prefs.lastMl || 90;
+    $('#fNote').value = '';
+  }
+
+  $('#addForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ml = parseInt($('#fMl').value, 10);
+    if (!Number.isFinite(ml) || ml < 0) return toast('Quantità non valida');
+    entries.push({
+      id: uid(),
+      ts: `${$('#fDate').value}T${$('#fTime').value}`,
+      ml,
+      note: $('#fNote').value.trim(),
+    });
+    prefs.lastMl = ml; savePrefs();
+    save();
+    resetForm();
+    render();
+    haptic();
+    toast(`Salvata: ${ml} ml`);
+  });
+
+  /* ──────────────────────── modifica ────────────────────── */
+
+  let editingId = null;
+  const dlg = $('#editDlg');
+
+  function openEdit(id) {
+    const e = entries.find((x) => x.id === id);
+    if (!e) return;
+    editingId = id;
+    $('#eDate').value = dayOf(e.ts);
+    $('#eTime').value = hourOf(e.ts);
+    $('#eMl').value = e.ml;
+    $('#eNote').value = e.note || '';
+    dlg.showModal();
+  }
+
+  $('#editForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const e = entries.find((x) => x.id === editingId);
+    if (e) {
+      e.ts = `${$('#eDate').value}T${$('#eTime').value}`;
+      e.ml = parseInt($('#eMl').value, 10) || 0;
+      e.note = $('#eNote').value.trim();
+      save(); render(); toast('Modifica salvata');
+    }
+    dlg.close();
+  });
+  $('#eCancel').addEventListener('click', () => dlg.close());
+  $('#eDelete').addEventListener('click', () => {
+    if (!confirm('Eliminare questa poppata?')) return;
+    entries = entries.filter((x) => x.id !== editingId);
+    save(); render(); dlg.close(); toast('Poppata eliminata');
+  });
+
+  /* ─────────────────────── rendering ────────────────────── */
+
+  const byDay = () => {
+    const map = new Map();
+    for (const e of entries) {
+      if (!map.has(dayOf(e.ts))) map.set(dayOf(e.ts), []);
+      map.get(dayOf(e.ts)).push(e);
+    }
+    return map;
+  };
+  const sum = (arr) => arr.reduce((t, e) => t + e.ml, 0);
+
+  function itemHTML(e) {
+    // il "quanto tempo fa" ha senso solo per le poppate recenti
+    const recent = dayOf(e.ts) >= dateStr(new Date(Date.now() - 864e5));
+    const sub = e.note ? esc(e.note) : (recent ? sinceLabel(e.ts) : '');
+    return `<li data-id="${e.id}">
+        <span class="time">${hourOf(e.ts)}</span>
+        <div style="min-width:0"><div class="note">${sub}</div></div>
+        <span class="qty">${e.ml} ml</span>
+      </li>`;
+  }
+  function esc(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function render() {
+    const days = byDay();
+
+    // ── Oggi
+    const today = dateStr();
+    const shown = $('#fDate').value || today;
+    const list = days.get(shown) || [];
+    const todayList = days.get(today) || [];
+
+    $('#sToday').textContent = sum(todayList);
+    $('#sCount').textContent = todayList.length;
+    $('#sLast').textContent = todayList.length ? hourOf(todayList[0].ts) : '–';
+    $('#dayLabel').textContent = shown === today ? '' : `— ${labelDay(shown)}`;
+    $('#todayList').innerHTML = list.length
+      ? list.map(itemHTML).join('')
+      : '<li class="empty" style="display:block">Nessuna poppata registrata per questo giorno.</li>';
+
+    // ── Storico
+    $('#hDays').textContent = days.size;
+    $('#hTotal').textContent = entries.length;
+    const last7 = [...Array(7)].map((_, i) => dateStr(new Date(Date.now() - i * 864e5)));
+    const withData = last7.filter((d) => days.has(d));
+    $('#hAvg').textContent = withData.length
+      ? Math.round(withData.reduce((t, d) => t + sum(days.get(d)), 0) / withData.length)
+      : 0;
+
+    $('#historyBox').innerHTML = days.size
+      ? [...days.entries()].map(([day, items]) => `
+          <div class="card">
+            <div class="day">
+              <b>${labelDay(day, true)}</b>
+              <span>${items.length} poppate · ${sum(items)} ml</span>
+            </div>
+            <ul class="list">${items.map(itemHTML).join('')}</ul>
+          </div>`).join('')
+      : '<div class="card"><p class="empty">Nessun dato ancora. Aggiungi la prima poppata dalla scheda “Oggi”.</p></div>';
+
+    updateExportCount();
+    $('#tabSubtitle').textContent = TITLES[currentTab()][1]();
+  }
+
+  const currentTab = () => document.querySelector('nav button[aria-selected="true"]').dataset.tab;
+
+  document.addEventListener('click', (ev) => {
+    const li = ev.target.closest('ul.list li[data-id]');
+    if (li) openEdit(li.dataset.id);
+  });
+  $('#fDate').addEventListener('change', render);
+
+  /* ──────────────────────── esporta ─────────────────────── */
+
+  function initRange() {
+    $('#xTo').value = dateStr();
+    $('#xFrom').value = dateStr(new Date(Date.now() - 6 * 864e5));
+  }
+
+  document.querySelectorAll('[data-range]').forEach((b) => b.addEventListener('click', () => {
+    const r = b.dataset.range, now = new Date();
+    if (r === 'all') {
+      const days = [...byDay().keys()];
+      $('#xFrom').value = days.length ? days[days.length - 1] : dateStr();
+      $('#xTo').value = days.length ? days[0] : dateStr();
+    } else if (r === 'month') {
+      $('#xFrom').value = dateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+      $('#xTo').value = dateStr(now);
+    } else {
+      $('#xFrom').value = dateStr(new Date(Date.now() - (Number(r) - 1) * 864e5));
+      $('#xTo').value = dateStr(now);
+    }
+    updateExportCount();
+  }));
+
+  function selection() {
+    let from = $('#xFrom').value, to = $('#xTo').value;
+    if (from && to && from > to) [from, to] = [to, from];
+    return entries
+      .filter((e) => (!from || dayOf(e.ts) >= from) && (!to || dayOf(e.ts) <= to))
+      .slice()
+      .sort((a, b) => a.ts.localeCompare(b.ts));
+  }
+
+  function updateExportCount() {
+    const sel = selection();
+    $('#xCount').textContent = sel.length
+      ? `${sel.length} poppate nell'intervallo · ${sum(sel)} ml totali`
+      : 'Nessuna poppata nell’intervallo selezionato.';
+  }
+  $('#xFrom').addEventListener('change', updateExportCount);
+  $('#xTo').addEventListener('change', updateExportCount);
+  $('#xSep').addEventListener('change', () => { prefs.sep = $('#xSep').value; savePrefs(); });
+
+  function csv(rows, sep) {
+    const cell = (v) => {
+      const s = String(v ?? '');
+      return /["\n\r]/.test(s) || s.includes(sep) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    return '﻿' + rows.map((r) => r.map(cell).join(sep)).join('\r\n') + '\r\n';
+  }
+
+  const fileTag = () => `${$('#xFrom').value || 'inizio'}_${$('#xTo').value || 'oggi'}`;
+
+  $('#xDetail').addEventListener('click', () => {
+    const sel = selection();
+    if (!sel.length) return toast('Nessun dato da esportare');
+    const rows = [['Data', 'Ora', 'Quantita_ml', 'Note']];
+    for (const e of sel) rows.push([dayOf(e.ts), hourOf(e.ts), e.ml, e.note || '']);
+    rows.push([]);
+    rows.push(['Totale poppate', sel.length, 'Totale ml', sum(sel)]);
+    saveFile(`poppate_${fileTag()}.csv`, csv(rows, $('#xSep').value), 'text/csv');
+  });
+
+  $('#xDaily').addEventListener('click', () => {
+    const sel = selection();
+    if (!sel.length) return toast('Nessun dato da esportare');
+    const map = new Map();
+    for (const e of sel) {
+      if (!map.has(dayOf(e.ts))) map.set(dayOf(e.ts), []);
+      map.get(dayOf(e.ts)).push(e);
+    }
+    const rows = [['Data', 'Numero_poppate', 'Totale_ml', 'Media_ml_per_poppata', 'Prima', 'Ultima']];
+    for (const [day, items] of map) {
+      const tot = sum(items);
+      rows.push([day, items.length, tot, Math.round(tot / items.length), hourOf(items[0].ts), hourOf(items[items.length - 1].ts)]);
+    }
+    saveFile(`riepilogo_giornaliero_${fileTag()}.csv`, csv(rows, $('#xSep').value), 'text/csv');
+  });
+
+  async function saveFile(name, text, mime) {
+    const blob = new Blob([text], { type: mime + ';charset=utf-8' });
+    try {
+      const file = new File([blob], name, { type: mime });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: name });
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;   // condivisione annullata dall'utente
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    toast('File generato');
+  }
+
+  /* ──────────────────────── backup ──────────────────────── */
+
+  $('#bExport').addEventListener('click', () => {
+    const data = JSON.stringify({ app: 'PoppApp', version: 1, exportedAt: new Date().toISOString(), entries }, null, 2);
+    saveFile(`poppapp_backup_${dateStr()}.json`, data, 'application/json');
+  });
+
+  $('#bImport').addEventListener('click', () => $('#bFile').click());
+  $('#bFile').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const incoming = (Array.isArray(data) ? data : data.entries || []).filter(valid);
+      if (!incoming.length) return toast('Nessuna poppata trovata nel file');
+      const seen = new Set(entries.map((e) => e.ts + '|' + e.ml));
+      let added = 0;
+      for (const e of incoming) {
+        const k = e.ts + '|' + e.ml;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        entries.push({ id: e.id || uid(), ts: e.ts, ml: e.ml, note: e.note || '' });
+        added++;
+      }
+      save(); render();
+      toast(added ? `Importate ${added} poppate` : 'Dati già presenti');
+    } catch {
+      toast('File non valido');
+    } finally {
+      ev.target.value = '';
+    }
+  });
+
+  $('#bWipe').addEventListener('click', () => {
+    if (!confirm('Cancellare TUTTE le poppate registrate? L’operazione non è reversibile.')) return;
+    if (!confirm('Confermi definitivamente? Consigliato fare prima un backup.')) return;
+    entries = []; save(); render(); toast('Dati cancellati');
+  });
+
+  /* ─────────────────────── avvio ────────────────────────── */
+
+  resetForm();
+  initRange();
+  if (prefs.sep) $('#xSep').value = prefs.sep;
+  showTab('oggi');
+
+  // riallinea data/ora quando l'app torna in primo piano
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if ($('#fDate').value === dateStr() || !$('#fDate').value) {
+      $('#fDate').value = dateStr();
+      $('#fTime').value = timeStr();
+    }
+    render();
+  });
+
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+})();
+</script>
+</body>
+</html>
