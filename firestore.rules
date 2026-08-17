@@ -1,0 +1,46 @@
+rules_version = '2';
+
+/*
+ * Regole di sicurezza dell'archivio condiviso di PoppApp.
+ *
+ * Da incollare in Firebase Console → Firestore Database → Regole → Pubblica.
+ *
+ * Idea di fondo: l'unico modo per arrivare alle poppate di una famiglia è
+ * conoscerne il codice, che è casuale e lungo (~100 bit). Le regole qui sotto
+ * impediscono tutto il resto: niente scritture fuori da quel percorso, niente
+ * codici corti, niente documenti di forma diversa da quella prevista.
+ *
+ * Attenzione: chi ha il codice famiglia ha accesso completo a quelle poppate.
+ * Il codice va trattato come una password.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /families/{familyId}/poppate/{docId} {
+
+      // Solo utenti autenticati (l'app fa un accesso anonimo automatico)
+      // e solo su codici famiglia di lunghezza plausibile.
+      function famigliaValida() {
+        return request.auth != null && familyId.size() >= 20 && familyId.size() <= 64;
+      }
+
+      // Il documento deve avere esattamente i campi previsti, con valori sensati.
+      function poppataValida(d) {
+        return d.keys().hasOnly(['ts', 'ml', 'note'])
+            && d.ts is string
+            && d.ts.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$')
+            && d.ml is number && d.ml >= 0 && d.ml <= 2000
+            && d.note is string && d.note.size() <= 200;
+      }
+
+      allow read: if famigliaValida();
+      allow create, update: if famigliaValida() && poppataValida(request.resource.data);
+      allow delete: if famigliaValida();
+    }
+
+    // Tutto il resto del database è chiuso.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,8 +1,12 @@
 /* Service worker: rende PoppApp utilizzabile anche senza connessione. */
-const CACHE = 'poppapp-v1';
+const CACHE = 'poppapp-v2';
 const ASSETS = [
   './',
   './index.html',
+  './app.js',
+  './sync.js',
+  './firebase-config.js',
+  './vendor/firebase.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
