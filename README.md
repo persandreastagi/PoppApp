@@ -81,29 +81,53 @@ secondi. Si può continuare a segnare anche senza campo: le poppate restano in c
 appena torna la rete.
 
 Serve un progetto Firebase gratuito (piano Spark: per due telefoni i consumi sono trascurabili).
-**Da fare una volta sola, su un telefono solo.** Sono tutti clic nella console Firebase: non c'è
-niente da modificare nel codice.
+**Da fare una volta sola.** Due strade, stesso risultato.
+
+### Da riga di comando (consigliata)
+
+Uno script fa tutto: crea il progetto, il database, attiva l'accesso anonimo, pubblica le regole,
+registra l'app web e stampa la configurazione.
+
+```sh
+git clone https://github.com/persandreastagi/PoppApp.git
+cd PoppApp
+bash tools/setup-firebase.sh
+```
+
+Prerequisiti: [Node.js](https://nodejs.org) 18+ e la
+[Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`brew install --cask google-cloud-sdk`
+su macOS). La CLI Firebase viene scaricata al volo da `npx`, non serve installarla.
+
+`gcloud` serve per un solo passaggio, l'attivazione dell'accesso anonimo: è l'unica cosa che la CLI
+Firebase non sa fare. Lo script si può rilanciare: i passaggi già completati vengono saltati.
+Per riusare un progetto esistente: `PROJECT_ID=mio-progetto bash tools/setup-firebase.sh`.
+
+Alla fine incolla il blocco stampato nell'app (scheda **Famiglia**), oppure scrivilo nel repository
+per tutti i telefoni in una volta:
+
+```sh
+bash tools/write-config.sh /tmp/poppapp-config.txt && git push
+```
+
+### Dalla console web
 
 1. **Crea il progetto** — vai su [console.firebase.google.com](https://console.firebase.google.com),
    *Crea un progetto*, chiamalo `PoppApp`. Google Analytics: puoi disattivarlo, non serve.
 2. **Attiva l'accesso anonimo** — *Authentication* → *Inizia* → scheda *Sign-in method* →
-   **Anonimo** → attiva. Serve perché le regole di sicurezza rifiutino le richieste che non
-   arrivano dall'app; per voi è invisibile, non c'è nessun login da fare.
+   **Anonimo** → attiva.
 3. **Crea il database** — *Firestore Database* → *Crea database* → modalità **produzione** →
    posizione `eur3 (europe-west)`.
 4. **Pubblica le regole** — scheda *Regole*, sostituisci tutto con il contenuto di
-   [`firestore.rules`](firestore.rules) e premi *Pubblica*. Senza questo passo il database resta
-   chiuso e l'app segnala un errore di sincronizzazione.
-5. **Aggiungi un'app web** — *Impostazioni progetto* (l'ingranaggio) → sezione *Le tue app* →
-   icona `</>`, dai un nome (`PoppApp`), **non** attivare Firebase Hosting. Alla fine ti mostra un
-   blocco che comincia con `const firebaseConfig = {`: **copialo tutto**.
-6. **Incollalo nell'app** — apri PoppApp, scheda **Famiglia**, incolla nel riquadro e premi
-   *Attiva la sincronizzazione*. (Lo stesso blocco resta sempre disponibile in
-   *Impostazioni progetto → Le tue app*.)
-7. **Collega l'altro telefono** — scheda **Famiglia** → *Crea un nuovo codice famiglia* →
-   *Invia link e codice*: parte un messaggio già pronto. Chi lo riceve apre il link con Safari e il
-   telefono si collega da solo: **il link porta con sé anche la configurazione**, quindi sul secondo
-   telefono non c'è niente da impostare.
+   [`firestore.rules`](firestore.rules) e premi *Pubblica*.
+5. **Aggiungi un'app web** — *Impostazioni progetto* → *Le tue app* → icona `</>`, dai un nome,
+   **non** attivare Firebase Hosting. Copia il blocco `const firebaseConfig = { … }`.
+6. **Incollalo nell'app** — PoppApp → scheda **Famiglia** → incolla → *Attiva la sincronizzazione*.
+
+### In entrambi i casi, l'ultimo passo
+
+Scheda **Famiglia** → *Crea un nuovo codice famiglia* → *Invia link e codice*: parte un messaggio
+già pronto. Chi lo riceve apre il link con Safari e il telefono si collega da solo, perché
+**il link porta con sé anche la configurazione**: sul secondo telefono non c'è niente da impostare.
 
 La pillola in alto a destra dice sempre a che punto sta: *solo questo telefono*, *sincronizzato*,
 *offline*, *errore*.
@@ -138,6 +162,9 @@ vendor/firebase.js    SDK Firebase impacchettato nel repository (niente CDN este
 manifest.webmanifest  nome, icona e modalità a schermo intero per l'installazione
 sw.js                 service worker: mette in cache l'app per l'uso offline
 icons/                icone dell'app
+firebase.json         indica a firebase deploy dove stanno le regole
+tools/setup-firebase.sh  prepara il progetto Firebase da riga di comando
+tools/write-config.sh    scrive la configurazione in firebase-config.js
 tools/make_icons.py   rigenera le icone PNG (python3 tools/make_icons.py)
 .github/workflows/    pubblicazione automatica su GitHub Pages
 ```
