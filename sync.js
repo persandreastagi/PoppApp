@@ -27,7 +27,7 @@ import {
   writeBatch,
 } from './vendor/firebase.js';
 
-import { firebaseConfig } from './firebase-config.js';
+import { getConfig } from './config.js';
 
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'; // niente l/o/0/1: si confondono
 const GROUPS = 5;
@@ -59,7 +59,9 @@ let authReady = null;
 
 function ensureApp() {
   if (app) return;
-  app = initializeApp(firebaseConfig);
+  const config = getConfig();
+  if (!config) throw new Error('configurazione Firebase assente');
+  app = initializeApp(config);
   db = initializeFirestore(app, {
     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   });

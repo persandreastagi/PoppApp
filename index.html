@@ -308,11 +308,18 @@
 
     <!-- nessuna configurazione Firebase: sola modalità locale -->
     <div class="card" id="cardNotConfigured" hidden>
-      <h2>Sincronizzazione non attivata</h2>
-      <p>Questa copia dell'app non ha una configurazione Firebase, quindi le poppate restano
-         su questo telefono. Per attivarla segui il capitolo <b>“Sincronizzare due telefoni”</b>
-         del README del progetto e incolla i valori nel file <code>firebase-config.js</code>.</p>
-      <p>Nel frattempo potete allinearvi con <b>Esporta backup</b> / <b>Importa backup</b>.</p>
+      <h2>Attiva la sincronizzazione</h2>
+      <p>Serve una volta sola, su un telefono solo. Nella console Firebase, alla voce
+         <b>Impostazioni progetto → Le tue app</b>, c'è un blocco che comincia con
+         <code>const firebaseConfig = {</code>: copialo tutto e incollalo qui sotto.</p>
+      <div class="field">
+        <label for="cfgPaste">Configurazione Firebase</label>
+        <textarea id="cfgPaste" rows="6" placeholder='const firebaseConfig = {&#10;  apiKey: "AIza…",&#10;  authDomain: "poppapp.firebaseapp.com",&#10;  projectId: "poppapp",&#10;  appId: "1:123…:web:abc…"&#10;};'
+                  autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+      </div>
+      <button class="primary" id="cfgSave" type="button">Attiva la sincronizzazione</button>
+      <p class="hint">Se lasci vuoto questo campo non cambia nulla: le poppate restano su questo
+         telefono e potete allinearvi con <b>Esporta backup</b> / <b>Importa backup</b>.</p>
     </div>
 
     <!-- configurata ma nessun codice inserito -->
@@ -341,6 +348,14 @@
       </div>
       <p class="hint">Chi ha questo codice vede tutte le poppate. Trattalo come una password:
          mandalo solo a chi deve davvero seguire la bambina.</p>
+      <p class="hint">Il link di invito porta con sé anche la configurazione: sull'altro telefono
+         non c'è niente da impostare.</p>
+    </div>
+
+    <div class="card" id="cardProject" hidden>
+      <h2>Progetto Firebase</h2>
+      <p id="fProject"></p>
+      <button class="secondary danger" id="cfgClear" type="button">Rimuovi la configurazione</button>
     </div>
   </section>
 </main>

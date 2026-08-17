@@ -8,7 +8,7 @@
  *              e rete di sicurezza se si scollega il telefono).
  */
 
-import { isConfigured } from './firebase-config.js';
+import { isConfigured, getConfig, setConfig, clearConfig, parseConfig, encodeConfig, decodeConfig } from './config.js';
 
 const KEY = 'poppapp.entries.v1';
 const PREFS = 'poppapp.prefs.v1';
@@ -439,12 +439,15 @@ function renderSync() {
   $('#syncText').textContent = long;
   $('#syncExplain').textContent = EXPLAIN[syncState] + (syncState === 'error' && syncDetail ? ` (${syncDetail})` : '');
 
-  const configured = isConfigured();
+  const config = getConfig();
+  const configured = Boolean(config);
   const joined = Boolean(prefs.familyCode);
   $('#cardNotConfigured').hidden = configured;
   $('#cardJoin').hidden = !configured || joined;
   $('#cardFamily').hidden = !configured || !joined;
+  $('#cardProject').hidden = !configured;
   if (joined) $('#fCode').textContent = prefs.familyCode;
+  if (configured) $('#fProject').textContent = `Le poppate sono ospitate dal progetto “${config.projectId}”.`;
 }
 
 /**
@@ -479,6 +482,25 @@ async function joinFamily(code, { silent = false, migrate = false } = {}) {
   }
 }
 
+$('#cfgSave').addEventListener('click', () => {
+  const cfg = parseConfig($('#cfgPaste').value);
+  if (!cfg) return toast('Configurazione non riconosciuta');
+  setConfig(cfg);
+  $('#cfgPaste').value = '';
+  render();
+  toast(`Progetto “${cfg.projectId}” collegato`);
+});
+
+$('#cfgClear').addEventListener('click', () => {
+  if (!confirm('Rimuovere la configurazione Firebase da questo telefono?\n\nLe poppate restano salvate qui, ma il telefono smette di sincronizzarsi.')) return;
+  if (cloud) { cloud.stop(); cloud = null; }
+  delete prefs.familyCode; savePrefs();
+  clearConfig();
+  syncState = 'off';
+  render();
+  toast('Configurazione rimossa');
+});
+
 $('#fCreate').addEventListener('click', async () => {
   const { generateFamilyCode } = await import('./sync.js');
   await joinFamily(generateFamilyCode(), { migrate: true });
@@ -503,7 +525,7 @@ $('#fCopy').addEventListener('click', async () => {
 });
 
 $('#fShare').addEventListener('click', async () => {
-  const url = `${location.origin}${location.pathname}#f=${prefs.familyCode}`;
+  const url = `${location.origin}${location.pathname}#f=${prefs.familyCode}&c=${encodeConfig(getConfig())}`;
   const text = `PoppApp — il diario delle poppate.\nApri questo link sul telefono (con Safari) e aggiungilo alla schermata Home:\n${url}\n\nCodice famiglia: ${prefs.familyCode}`;
   try {
     if (navigator.share) { await navigator.share({ title: 'PoppApp', text }); return; }
@@ -532,9 +554,18 @@ showTab('oggi');
 
 // link di invito: .../#f=codice-famiglia
 async function handleInviteLink() {
-  const m = location.hash.match(/[#&]f=([a-z0-9-]+)/i);
+  const hash = location.hash;
+  const m = hash.match(/[#&]f=([a-z0-9-]+)/i);
   if (!m) return false;
   history.replaceState(null, '', location.pathname + location.search);
+
+  // il link può portare anche la configurazione Firebase: così chi lo riceve
+  // non deve impostare niente
+  const c = hash.match(/[#&]c=([A-Za-z0-9\-_]+)/);
+  if (c && !isConfigured()) {
+    const cfg = decodeConfig(c[1]);
+    if (cfg) setConfig(cfg);
+  }
   if (!isConfigured()) return false;
 
   const { normalizeFamilyCode } = await import('./sync.js');

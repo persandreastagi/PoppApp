@@ -81,16 +81,18 @@ secondi. Si può continuare a segnare anche senza campo: le poppate restano in c
 appena torna la rete.
 
 Serve un progetto Firebase gratuito (piano Spark: per due telefoni i consumi sono trascurabili).
-**Da fare una volta sola, ~10 minuti.**
+**Da fare una volta sola, su un telefono solo.** Sono tutti clic nella console Firebase: non c'è
+niente da modificare nel codice.
 
 1. **Crea il progetto** — vai su [console.firebase.google.com](https://console.firebase.google.com),
    *Crea un progetto*, chiamalo `PoppApp`. Google Analytics: puoi disattivarlo, non serve.
 2. **Aggiungi un'app web** — nella panoramica del progetto tocca l'icona `</>`, dai un nome
-   (`PoppApp`), **non** attivare Firebase Hosting. Alla fine ti mostra un blocco `firebaseConfig`.
-3. **Incolla la configurazione** — copia i quattro valori `apiKey`, `authDomain`, `projectId`,
-   `appId` dentro `firebase-config.js` di questo repository, poi fai commit e push: GitHub Pages
-   ripubblica da solo.
-4. **Attiva l'accesso anonimo** — Firebase Console → *Authentication* → *Inizia* → scheda
+   (`PoppApp`), **non** attivare Firebase Hosting. Alla fine ti mostra un blocco che comincia con
+   `const firebaseConfig = {`: **copialo tutto**.
+3. **Incollalo nell'app** — apri PoppApp, scheda **Famiglia**, incolla nel riquadro e premi
+   *Attiva la sincronizzazione*. (Se hai chiuso la pagina della console, ritrovi lo stesso blocco in
+   *Impostazioni progetto → Le tue app*.)
+4. **Attiva l'accesso anonimo** — console Firebase → *Authentication* → *Inizia* → scheda
    *Sign-in method* → **Anonimo** → attiva. Serve perché le regole di sicurezza rifiutino le
    richieste che non arrivano dall'app; per voi è invisibile, non c'è nessun login da fare.
 5. **Crea il database** — *Firestore Database* → *Crea database* → modalità **produzione** →
@@ -98,12 +100,16 @@ Serve un progetto Firebase gratuito (piano Spark: per due telefoni i consumi son
 6. **Pubblica le regole** — scheda *Regole*, incolla il contenuto di
    [`firestore.rules`](firestore.rules) di questo repository e premi *Pubblica*. Senza questo passo
    il database resta chiuso e l'app segnala un errore di sincronizzazione.
-7. **Collega i telefoni** — apri l'app, scheda **Famiglia** → *Crea un nuovo codice famiglia* →
-   *Invia link e codice*: parte un messaggio già pronto con il link dell'app e il codice. Chi lo
-   riceve apre il link con Safari e il telefono si collega da solo.
+7. **Collega l'altro telefono** — scheda **Famiglia** → *Crea un nuovo codice famiglia* →
+   *Invia link e codice*: parte un messaggio già pronto. Chi lo riceve apre il link con Safari e il
+   telefono si collega da solo: **il link porta con sé anche la configurazione**, quindi sul secondo
+   telefono non c'è niente da impostare.
 
 La pillola in alto a destra dice sempre a che punto sta: *solo questo telefono*, *sincronizzato*,
 *offline*, *errore*.
+
+In alternativa alla scheda Famiglia, la configurazione si può scrivere una volta per tutte in
+`firebase-config.js`: vale per chiunque apra l'app, ma richiede un commit e il redeploy.
 
 ### Il codice famiglia
 
@@ -116,7 +122,7 @@ I valori in `firebase-config.js`, invece, **non sono segreti**: la configurazion
 pubblica per progetto e sta in chiaro in qualsiasi app che la usi. A proteggere i dati sono il codice
 famiglia e le regole di sicurezza, non quei valori.
 
-Finché `firebase-config.js` resta vuoto, l'app funziona come prima, tutta in locale: la scheda
+Finché non incolli una configurazione, l'app funziona come prima, tutta in locale: la scheda
 Famiglia lo dice esplicitamente e non viene caricato nulla di Firebase.
 
 ## 6. Struttura del progetto
@@ -125,7 +131,8 @@ Famiglia lo dice esplicitamente e non viene caricato nulla di Firebase.
 index.html            struttura e stile dell'interfaccia
 app.js                logica dell'app: inserimento, storico, CSV, backup, schede
 sync.js               sincronizzazione via Firestore e gestione del codice famiglia
-firebase-config.js    la TUA configurazione Firebase (vuota = solo locale)
+config.js             da dove arriva la configurazione Firebase (incollata o dal repository)
+firebase-config.js    configurazione scritta nel repository (facoltativa, vuota = solo locale)
 firestore.rules       regole di sicurezza da incollare nella console Firebase
 vendor/firebase.js    SDK Firebase impacchettato nel repository (niente CDN esterne)
 manifest.webmanifest  nome, icona e modalità a schermo intero per l'installazione
