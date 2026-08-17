@@ -86,20 +86,20 @@ niente da modificare nel codice.
 
 1. **Crea il progetto** — vai su [console.firebase.google.com](https://console.firebase.google.com),
    *Crea un progetto*, chiamalo `PoppApp`. Google Analytics: puoi disattivarlo, non serve.
-2. **Aggiungi un'app web** — nella panoramica del progetto tocca l'icona `</>`, dai un nome
-   (`PoppApp`), **non** attivare Firebase Hosting. Alla fine ti mostra un blocco che comincia con
-   `const firebaseConfig = {`: **copialo tutto**.
-3. **Incollalo nell'app** — apri PoppApp, scheda **Famiglia**, incolla nel riquadro e premi
-   *Attiva la sincronizzazione*. (Se hai chiuso la pagina della console, ritrovi lo stesso blocco in
-   *Impostazioni progetto → Le tue app*.)
-4. **Attiva l'accesso anonimo** — console Firebase → *Authentication* → *Inizia* → scheda
-   *Sign-in method* → **Anonimo** → attiva. Serve perché le regole di sicurezza rifiutino le
-   richieste che non arrivano dall'app; per voi è invisibile, non c'è nessun login da fare.
-5. **Crea il database** — *Firestore Database* → *Crea database* → modalità **produzione** →
+2. **Attiva l'accesso anonimo** — *Authentication* → *Inizia* → scheda *Sign-in method* →
+   **Anonimo** → attiva. Serve perché le regole di sicurezza rifiutino le richieste che non
+   arrivano dall'app; per voi è invisibile, non c'è nessun login da fare.
+3. **Crea il database** — *Firestore Database* → *Crea database* → modalità **produzione** →
    posizione `eur3 (europe-west)`.
-6. **Pubblica le regole** — scheda *Regole*, incolla il contenuto di
-   [`firestore.rules`](firestore.rules) di questo repository e premi *Pubblica*. Senza questo passo
-   il database resta chiuso e l'app segnala un errore di sincronizzazione.
+4. **Pubblica le regole** — scheda *Regole*, sostituisci tutto con il contenuto di
+   [`firestore.rules`](firestore.rules) e premi *Pubblica*. Senza questo passo il database resta
+   chiuso e l'app segnala un errore di sincronizzazione.
+5. **Aggiungi un'app web** — *Impostazioni progetto* (l'ingranaggio) → sezione *Le tue app* →
+   icona `</>`, dai un nome (`PoppApp`), **non** attivare Firebase Hosting. Alla fine ti mostra un
+   blocco che comincia con `const firebaseConfig = {`: **copialo tutto**.
+6. **Incollalo nell'app** — apri PoppApp, scheda **Famiglia**, incolla nel riquadro e premi
+   *Attiva la sincronizzazione*. (Lo stesso blocco resta sempre disponibile in
+   *Impostazioni progetto → Le tue app*.)
 7. **Collega l'altro telefono** — scheda **Famiglia** → *Crea un nuovo codice famiglia* →
    *Invia link e codice*: parte un messaggio già pronto. Chi lo riceve apre il link con Safari e il
    telefono si collega da solo: **il link porta con sé anche la configurazione**, quindi sul secondo
