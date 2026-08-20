@@ -25,6 +25,23 @@ export function getConfig() {
 
 export const isConfigured = () => Boolean(getConfig());
 
+/**
+ * Da dove arriva la configurazione attiva.
+ *
+ * Serve a distinguere l'app pubblicata (configurazione nel codice: chi la usa
+ * non deve toccare niente, e non deve nemmeno vedere i comandi per farlo) da
+ * una copia configurata a mano su un singolo telefono.
+ *
+ * @returns {'codice'|'incollata'|null}
+ */
+export function configSource() {
+  try {
+    const salvata = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (completa(salvata)) return 'incollata';
+  } catch { /* vedi getConfig() */ }
+  return completa(baked) ? 'codice' : null;
+}
+
 export function setConfig(cfg) {
   if (!completa(cfg)) throw new Error('configurazione incompleta');
   localStorage.setItem(KEY, JSON.stringify(cfg));

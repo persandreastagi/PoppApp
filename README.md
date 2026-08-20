@@ -76,64 +76,39 @@ Fanne uno ogni tanto, magari su iCloud Drive.
 
 ## 5. Sincronizzare due telefoni
 
-Con la sincronizzazione attiva, chi segna una poppata la fa comparire sull'altro telefono in pochi
-secondi. Si può continuare a segnare anche senza campo: le poppate restano in coda e partono da sole
-appena torna la rete.
+**Chi usa l'app non configura niente.** Il backend sta nel codice: si apre PoppApp e si segna una
+poppata. Per condividere il diario con un'altra persona bastano due tocchi — *Crea un nuovo codice
+famiglia*, *Invia link e codice* — e chi riceve il link lo apre e basta: il link porta con sé anche
+la configurazione.
 
-Serve un progetto Firebase gratuito (piano Spark: per due telefoni i consumi sono trascurabili).
-**Da fare una volta sola.** Due strade, stesso risultato.
-
-### Da riga di comando (consigliata)
-
-Uno script fa tutto: crea il progetto, il database, attiva l'accesso anonimo, pubblica le regole,
-registra l'app web e stampa la configurazione.
+Quel backend però va creato **una volta sola, da chi pubblica l'app**. È un progetto Firebase
+gratuito (piano Spark: per una famiglia i consumi sono trascurabili), e c'è uno script che lo fa.
 
 ```sh
 git clone https://github.com/persandreastagi/PoppApp.git
 cd PoppApp
 bash tools/setup-firebase.sh
+git add firebase-config.js && git commit -m "Backend di PoppApp" && git push
 ```
 
-Prerequisiti: [Node.js](https://nodejs.org) 18+ e la
-[Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`brew install --cask google-cloud-sdk`
-su macOS). La CLI Firebase viene scaricata al volo da `npx`, non serve installarla.
+Unico prerequisito [Node.js](https://nodejs.org) 18+: la CLI Firebase la scarica `npx` al momento.
+Lo script crea il progetto, il database, pubblica le regole di sicurezza, registra l'app web, scrive
+la configurazione dentro `firebase-config.js` e infine **verifica sul serio** che tutto funzioni —
+accesso, scrittura, lettura, cancellazione, e che le regole rifiutino davvero i dati malformati.
+È rilanciabile: ciò che risulta già fatto viene saltato.
 
-`gcloud` serve per un solo passaggio, l'attivazione dell'accesso anonimo: è l'unica cosa che la CLI
-Firebase non sa fare. Lo script si può rilanciare: i passaggi già completati vengono saltati.
-Per riusare un progetto esistente: `PROJECT_ID=mio-progetto bash tools/setup-firebase.sh`.
+Ti chiederà il login Google all'inizio e, in un solo punto, di girare un interruttore nella console:
+l'accesso anonimo è l'unica cosa che la CLI Firebase non sa fare. Lo script stampa il collegamento
+diretto a quella pagina, aspetta, e poi controlla da sé che sia attivo. Se hai `gcloud` installato lo
+fa da solo senza chiederti nulla.
 
-Alla fine incolla il blocco stampato nell'app (scheda **Famiglia**), oppure scrivilo nel repository
-per tutti i telefoni in una volta:
+Per riusare un progetto Firebase che hai già: `PROJECT_ID=mio-progetto bash tools/setup-firebase.sh`.
 
-```sh
-bash tools/write-config.sh /tmp/poppapp-config.txt && git push
-```
+### Configurare un singolo telefono a mano
 
-### Dalla console web
-
-1. **Crea il progetto** — vai su [console.firebase.google.com](https://console.firebase.google.com),
-   *Crea un progetto*, chiamalo `PoppApp`. Google Analytics: puoi disattivarlo, non serve.
-2. **Attiva l'accesso anonimo** — *Authentication* → *Inizia* → scheda *Sign-in method* →
-   **Anonimo** → attiva.
-3. **Crea il database** — *Firestore Database* → *Crea database* → modalità **produzione** →
-   posizione `eur3 (europe-west)`.
-4. **Pubblica le regole** — scheda *Regole*, sostituisci tutto con il contenuto di
-   [`firestore.rules`](firestore.rules) e premi *Pubblica*.
-5. **Aggiungi un'app web** — *Impostazioni progetto* → *Le tue app* → icona `</>`, dai un nome,
-   **non** attivare Firebase Hosting. Copia il blocco `const firebaseConfig = { … }`.
-6. **Incollalo nell'app** — PoppApp → scheda **Famiglia** → incolla → *Attiva la sincronizzazione*.
-
-### In entrambi i casi, l'ultimo passo
-
-Scheda **Famiglia** → *Crea un nuovo codice famiglia* → *Invia link e codice*: parte un messaggio
-già pronto. Chi lo riceve apre il link con Safari e il telefono si collega da solo, perché
-**il link porta con sé anche la configurazione**: sul secondo telefono non c'è niente da impostare.
-
-La pillola in alto a destra dice sempre a che punto sta: *solo questo telefono*, *sincronizzato*,
-*offline*, *errore*.
-
-In alternativa alla scheda Famiglia, la configurazione si può scrivere una volta per tutte in
-`firebase-config.js`: vale per chiunque apra l'app, ma richiede un commit e il redeploy.
+Se non vuoi mettere la configurazione nel codice, la scheda **Famiglia** accetta il blocco
+`const firebaseConfig = { … }` incollato: vale solo per quel telefono. È la strada per provare, non
+per pubblicare.
 
 ### Il codice famiglia
 
@@ -149,7 +124,28 @@ famiglia e le regole di sicurezza, non quei valori.
 Finché non incolli una configurazione, l'app funziona come prima, tutta in locale: la scheda
 Famiglia lo dice esplicitamente e non viene caricato nulla di Firebase.
 
-## 6. Struttura del progetto
+## 6. Verso lo store
+
+L'app è già nella forma giusta per essere distribuita: chi la installa non configura niente, e tutta
+la sincronizzazione è dietro un solo modulo (`sync.js`), quindi il backend si può sostituire senza
+toccare il resto. Restano però tre cose da sapere prima di puntare all'App Store.
+
+**Una PWA da sola non entra su App Store.** Apple non accetta l'aggiunta alla schermata Home come
+forma di pubblicazione: serve un pacchetto nativo che incorpori l'app (per esempio con
+[Capacitor](https://capacitorjs.com), che riusa questo stesso codice) e un account Apple Developer,
+che costa 99 €/anno. Apple inoltre rifiuta i contenitori che sono solo un sito web dentro una
+finestra: PoppApp ha già dalla sua il funzionamento offline, e le notifiche dei promemoria poppata
+sarebbero un motivo in più.
+
+**Servirà l'informativa privacy.** L'app tratta dati su una bambina e, con la sincronizzazione
+attiva, quei dati escono dal telefono: va dichiarato nella scheda dello store e va scritta
+un'informativa. La sezione [Dove finiscono i dati](#4-dove-finiscono-i-dati) è il punto di partenza.
+
+**Il codice famiglia va irrobustito.** Per una famiglia va benissimo. Con molti utenti conviene
+aggiungere [App Check](https://firebase.google.com/docs/app-check) (impedisce l'uso del backend da
+fuori dell'app) e valutare un accesso vero al posto del solo codice condiviso.
+
+## 7. Struttura del progetto
 
 ```
 index.html            struttura e stile dell'interfaccia
@@ -163,7 +159,7 @@ manifest.webmanifest  nome, icona e modalità a schermo intero per l'installazio
 sw.js                 service worker: mette in cache l'app per l'uso offline
 icons/                icone dell'app
 firebase.json         indica a firebase deploy dove stanno le regole
-tools/setup-firebase.sh  prepara il progetto Firebase da riga di comando
+tools/setup-firebase.sh  crea e verifica il backend Firebase (una volta sola)
 tools/write-config.sh    scrive la configurazione in firebase-config.js
 tools/make_icons.py   rigenera le icone PNG (python3 tools/make_icons.py)
 .github/workflows/    pubblicazione automatica su GitHub Pages

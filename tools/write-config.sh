@@ -5,6 +5,7 @@
 #
 #   bash tools/write-config.sh /tmp/poppapp-config.txt
 #   bash tools/write-config.sh                    # legge da standard input
+#   bash tools/write-config.sh file --no-commit   # scrive senza fare commit
 #
 # Accetta il blocco così come lo mostra la console Firebase, con o senza
 # "const firebaseConfig =" e punto e virgola finale.
@@ -12,6 +13,8 @@
 set -euo pipefail
 
 SORGENTE="${1:-/dev/stdin}"
+COMMIT=1
+if [ "${2:-}" = "--no-commit" ]; then COMMIT=0; fi
 [ -f firebase-config.js ] || { echo "Lancialo dalla cartella del progetto." >&2; exit 1; }
 
 python3 - "$SORGENTE" <<'PY'
@@ -45,6 +48,8 @@ export const isConfigured = () =>
 print(f"firebase-config.js aggiornato con il progetto “{cfg['projectId']}”")
 PY
 
-git add firebase-config.js
-git commit -m "Configurazione Firebase del progetto" >/dev/null
-echo "Commit creato. Ora: git push"
+if [ "$COMMIT" = "1" ]; then
+  git add firebase-config.js
+  git commit -m "Configurazione Firebase del progetto" >/dev/null
+  echo "Commit creato. Ora: git push"
+fi

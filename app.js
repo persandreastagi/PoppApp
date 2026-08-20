@@ -8,7 +8,7 @@
  *              e rete di sicurezza se si scollega il telefono).
  */
 
-import { isConfigured, getConfig, setConfig, clearConfig, parseConfig, encodeConfig, decodeConfig } from './config.js';
+import { isConfigured, getConfig, configSource, setConfig, clearConfig, parseConfig, encodeConfig, decodeConfig } from './config.js';
 
 const KEY = 'poppapp.entries.v1';
 const PREFS = 'poppapp.prefs.v1';
@@ -445,7 +445,9 @@ function renderSync() {
   $('#cardNotConfigured').hidden = configured;
   $('#cardJoin').hidden = !configured || joined;
   $('#cardFamily').hidden = !configured || !joined;
-  $('#cardProject').hidden = !configured;
+  // il riquadro del progetto riguarda chi configura l'app a mano: se la
+  // configurazione è già nel codice, per chi la usa è rumore
+  $('#cardProject').hidden = configSource() !== 'incollata';
   if (joined) $('#fCode').textContent = prefs.familyCode;
   if (configured) $('#fProject').textContent = `Le poppate sono ospitate dal progetto “${config.projectId}”.`;
 }
