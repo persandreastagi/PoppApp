@@ -181,11 +181,29 @@ cat <<EOF
   App web:   $APP_ID
   Regione:   $REGION
 
-  La configurazione è dentro firebase-config.js: da ora chi apre l'app non
-  deve impostare niente. Pubblicala:
+  La configurazione è dentro firebase-config.js. Per metterla in circolo, una
+  delle due:
 
-    git add firebase-config.js && git commit -m "Backend di PoppApp" && git push
+  A) pubblicarla per tutti i telefoni (consigliata)
+       git add firebase-config.js && git commit -m "Backend di PoppApp" && git push
 
-  Poi, dal telefono: Famiglia → Crea un nuovo codice famiglia → Invia link e
-  codice. Sull'altro telefono basta aprire il link.
+  B) senza git, un telefono alla volta: apri PoppApp -> scheda Famiglia e
+     incolla il blocco qui sotto (e' anche in /tmp/poppapp-config.txt)
+
 EOF
+
+# stampa la configurazione anche a schermo: serve a chi sceglie la via B
+python3 - <<'PY2'
+import pathlib, re
+testo = pathlib.Path('firebase-config.js').read_text()
+campi = dict(re.findall(r"(\w+): '([^']+)'", testo))
+blocco = 'const firebaseConfig = {\n' + ''.join(
+    f'  {k}: "{campi[k]}",\n' for k in ('apiKey', 'authDomain', 'projectId', 'appId') if k in campi
+) + '};'
+pathlib.Path('/tmp/poppapp-config.txt').write_text(blocco + '\n')
+print(blocco)
+PY2
+
+echo ""
+echo "  Poi, dal telefono: Famiglia -> Crea un nuovo codice famiglia ->"
+echo "  Invia link e codice. Sull'altro telefono basta aprire il link."

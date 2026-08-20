@@ -84,12 +84,19 @@ la configurazione.
 Quel backend però va creato **una volta sola, da chi pubblica l'app**. È un progetto Firebase
 gratuito (piano Spark: per una famiglia i consumi sono trascurabili), e c'è uno script che lo fa.
 
+Si lancia **dal tuo computer** (non dall'iPhone: serve un browser per il login Google),
+nel Terminale:
+
 ```sh
 git clone https://github.com/persandreastagi/PoppApp.git
 cd PoppApp
 bash tools/setup-firebase.sh
 git add firebase-config.js && git commit -m "Backend di PoppApp" && git push
 ```
+
+Su Windows serve una shell che capisca bash: Git Bash oppure WSL.
+Se preferisci non usare `git`, lo script stampa anche il blocco di configurazione da incollare
+nella scheda **Famiglia**: vale però solo per il telefono su cui lo incolli.
 
 Unico prerequisito [Node.js](https://nodejs.org) 18+: la CLI Firebase la scarica `npx` al momento.
 Lo script crea il progetto, il database, pubblica le regole di sicurezza, registra l'app web, scrive
