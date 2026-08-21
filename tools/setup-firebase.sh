@@ -41,8 +41,19 @@ ok "curl presente"
 titolo "Accesso al tuo account Google"
 if "${FIREBASE[@]}" login:list 2>/dev/null | grep -q "@"; then
   ok "già autenticato"
+elif [ "${LOGIN_MANUALE:-0}" = "1" ]; then
+  echo "  Login manuale: comparirà un indirizzo da aprire nel browser, poi un"
+  echo "  codice da riportare qui."
+  "${FIREBASE[@]}" login --no-localhost
 else
-  avviso "si aprirà il browser (su macchina senza browser: aggiungi --no-localhost)"
+  echo "  Dovrebbe aprirsi il browser da solo."
+  echo ""
+  echo "  Se NON si apre: qui sotto compare un indirizzo lungo che comincia con"
+  echo "  https://accounts.google.com/... — copialo e aprilo tu nel browser."
+  echo ""
+  echo "  Se non compare nessun indirizzo: interrompi con CTRL-C e rilancia con"
+  echo "    LOGIN_MANUALE=1 bash tools/setup-firebase.sh"
+  echo ""
   "${FIREBASE[@]}" login
 fi
 
