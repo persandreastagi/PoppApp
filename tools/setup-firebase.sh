@@ -37,7 +37,17 @@ ok "Node.js $(node --version)"
 command -v curl >/dev/null || errore "curl non trovato."
 ok "curl presente"
 
-# ── 1. accesso ──────────────────────────────────────────────────────────────
+# ── 1. CLI Firebase ─────────────────────────────────────────────────────────
+# Va scaricata alla prima esecuzione: sono decine di megabyte. Il comando resta
+# volutamente rumoroso, altrimenti sembra che lo script si sia piantato.
+titolo "Preparazione della CLI Firebase"
+echo "  Alla prima esecuzione viene scaricata: può richiedere un minuto o due."
+echo "  Se sembra ferma, aspetta: sta scaricando."
+echo ""
+"${FIREBASE[@]}" --version
+ok "CLI Firebase pronta"
+
+# ── 2. accesso ──────────────────────────────────────────────────────────────
 titolo "Accesso al tuo account Google"
 if "${FIREBASE[@]}" login:list 2>/dev/null | grep -q "@"; then
   ok "già autenticato"
@@ -57,7 +67,7 @@ else
   "${FIREBASE[@]}" login
 fi
 
-# ── 2. progetto ─────────────────────────────────────────────────────────────
+# ── 3. progetto ─────────────────────────────────────────────────────────────
 titolo "Progetto Firebase"
 if [ -z "$PROJECT_ID" ]; then
   PROJECT_ID="poppapp-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
@@ -69,7 +79,7 @@ else
   ok "uso il progetto indicato: $PROJECT_ID"
 fi
 
-# ── 3. database ─────────────────────────────────────────────────────────────
+# ── 4. database ─────────────────────────────────────────────────────────────
 titolo "Database Firestore (regione $REGION)"
 if "${FIREBASE[@]}" firestore:databases:get "(default)" --project "$PROJECT_ID" >/dev/null 2>&1; then
   avviso "database già presente, lo lascio com'è"
@@ -82,12 +92,12 @@ else
   ok "database creato"
 fi
 
-# ── 4. regole di sicurezza ──────────────────────────────────────────────────
+# ── 5. regole di sicurezza ──────────────────────────────────────────────────
 titolo "Regole di sicurezza"
 "${FIREBASE[@]}" deploy --only firestore:rules --project "$PROJECT_ID" --non-interactive
 ok "regole pubblicate"
 
-# ── 5. app web e configurazione ─────────────────────────────────────────────
+# ── 6. app web e configurazione ─────────────────────────────────────────────
 titolo "App web"
 trova_app() {
   "${FIREBASE[@]}" apps:list WEB --project "$PROJECT_ID" 2>/dev/null \
@@ -109,7 +119,7 @@ API_KEY="$(grep -oE "apiKey: '[^']+'" firebase-config.js | cut -d"'" -f2 || true
 [ -n "$API_KEY" ] || errore "configurazione non scritta correttamente in firebase-config.js"
 ok "configurazione scritta in firebase-config.js"
 
-# ── 6. accesso anonimo ──────────────────────────────────────────────────────
+# ── 7. accesso anonimo ──────────────────────────────────────────────────────
 # È l'unico passaggio che la CLI Firebase non copre. Con gcloud si fa da qui;
 # senza, è un singolo interruttore nella console.
 titolo "Accesso anonimo"
@@ -145,7 +155,7 @@ else
   done
 fi
 
-# ── 7. verifica vera ────────────────────────────────────────────────────────
+# ── 8. verifica vera ────────────────────────────────────────────────────────
 titolo "Verifica della sincronizzazione"
 
 TOKEN="$(curl -sS -X POST -H 'Content-Type: application/json' -d '{"returnSecureToken":true}' \
