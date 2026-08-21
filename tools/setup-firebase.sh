@@ -159,8 +159,10 @@ ok "regole pubblicate"
 
 # ── 6. app web e configurazione ─────────────────────────────────────────────
 titolo "App web"
+# CI=true spegne gli spinner: su Windows, spinner + output rediretto fanno
+# crashare Node con "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)".
 trova_app() {
-  "${FIREBASE[@]}" apps:list WEB --project "$PROJECT_ID" 2>/dev/null \
+  CI=true "${FIREBASE[@]}" apps:list WEB --project "$PROJECT_ID" 2>/dev/null \
     | grep -oE '1:[0-9]+:web:[a-z0-9]+' | head -1 || true
 }
 APP_ID="$(trova_app)"
@@ -173,8 +175,23 @@ else
 fi
 [ -n "$APP_ID" ] || errore "non sono riuscito a ricavare l'ID dell'app web."
 
-"${FIREBASE[@]}" apps:sdkconfig WEB "$APP_ID" --project "$PROJECT_ID" > /tmp/poppapp-sdkconfig.txt
-bash tools/write-config.sh /tmp/poppapp-sdkconfig.txt --no-commit
+# Si preferisce --out: è la CLI a scrivere il file, senza redirezione della shell.
+SDKCONFIG=/tmp/poppapp-sdkconfig.json
+rm -f "$SDKCONFIG"
+CI=true "${FIREBASE[@]}" apps:sdkconfig WEB "$APP_ID" --project "$PROJECT_ID" --out "$SDKCONFIG" || true
+if [ ! -s "$SDKCONFIG" ]; then
+  avviso "riprovo senza --out"
+  CI=true "${FIREBASE[@]}" apps:sdkconfig WEB "$APP_ID" --project "$PROJECT_ID" > "$SDKCONFIG" || true
+fi
+if [ ! -s "$SDKCONFIG" ]; then
+  errore "Non sono riuscito a scaricare la configurazione dell'app web.
+   Prendila a mano da qui (blocco che comincia con const firebaseConfig):
+     https://console.firebase.google.com/project/$PROJECT_ID/settings/general
+   salvala in un file e passala allo script:
+     bash tools/write-config.sh IL_TUO_FILE --no-commit
+   oppure incollala direttamente nell'app, scheda Famiglia."
+fi
+bash tools/write-config.sh "$SDKCONFIG" --no-commit
 API_KEY="$(grep -oE "apiKey: '[^']+'" firebase-config.js | cut -d"'" -f2 || true)"
 [ -n "$API_KEY" ] || errore "configurazione non scritta correttamente in firebase-config.js"
 ok "configurazione scritta in firebase-config.js"
