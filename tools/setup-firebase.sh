@@ -25,7 +25,14 @@ ok()     { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 avviso() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 errore() { printf '\n\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
-FIREBASE=(npx --yes firebase-tools@15)
+# Se firebase-tools è installato stabilmente lo si preferisce: la cache di npx
+# si danneggia con facilità (un download interrotto basta) e i guasti che ne
+# derivano sembrano errori di Firebase, non di installazione.
+if command -v firebase >/dev/null 2>&1; then
+  FIREBASE=(firebase)
+else
+  FIREBASE=(npx --yes firebase-tools@15)
+fi
 
 [ -f firestore.rules ] && [ -f firebase-config.js ] \
   || errore "Lancia lo script dalla cartella del progetto PoppApp."
@@ -41,10 +48,20 @@ ok "curl presente"
 # Va scaricata alla prima esecuzione: sono decine di megabyte. Il comando resta
 # volutamente rumoroso, altrimenti sembra che lo script si sia piantato.
 titolo "Preparazione della CLI Firebase"
-echo "  Alla prima esecuzione viene scaricata: può richiedere un minuto o due."
-echo "  Se sembra ferma, aspetta: sta scaricando."
+if [ "${FIREBASE[0]}" = "firebase" ]; then
+  echo "  Uso la CLI installata sul sistema."
+else
+  echo "  Alla prima esecuzione viene scaricata: può richiedere un minuto o due."
+  echo "  Se sembra ferma, aspetta: sta scaricando — non interrompere, un download"
+  echo "  a metà lascia una copia danneggiata che poi dà errori incomprensibili."
+fi
 echo ""
-"${FIREBASE[@]}" --version
+if ! "${FIREBASE[@]}" --version; then
+  errore "La CLI Firebase non parte.
+   Di solito è la cache di npx danneggiata. Si risolve installandola sul serio:
+     npm install -g firebase-tools
+   poi riapri il terminale e rilancia questo script."
+fi
 ok "CLI Firebase pronta"
 
 # ── 2. accesso ──────────────────────────────────────────────────────────────
