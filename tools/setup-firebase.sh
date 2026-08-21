@@ -76,6 +76,23 @@ if [ -z "$PROJECT_ID" ]; then
   "${FIREBASE[@]}" projects:create "$PROJECT_ID" -n "PoppApp"
   ok "progetto creato"
 else
+  # Attenzione: l'ID del progetto NON è il nome che si legge nella console.
+  # È tutto minuscolo, tipo "poppapp-a1b2c3". Lo si ricava da projects:list.
+  if ! [[ "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
+    errore "\"$PROJECT_ID\" non è un ID di progetto valido.
+   L'ID è tutto minuscolo (lettere, cifre e trattini) e non è il nome
+   visualizzato nella console: \"PoppApp\" è un nome, \"poppapp-a1b2c3\" è un ID.
+   Trova il tuo con:
+     npx --yes firebase-tools@15 projects:list
+   e usa la colonna \"Project ID\"."
+  fi
+  if ! "${FIREBASE[@]}" projects:list 2>/dev/null | grep -q "$PROJECT_ID"; then
+    errore "Il progetto \"$PROJECT_ID\" non risulta fra i tuoi.
+   Elenca quelli disponibili con:
+     npx --yes firebase-tools@15 projects:list
+   Oppure lascia che lo script ne crei uno nuovo:
+     bash tools/setup-firebase.sh"
+  fi
   ok "uso il progetto indicato: $PROJECT_ID"
 fi
 
