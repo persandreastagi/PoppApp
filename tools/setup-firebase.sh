@@ -98,15 +98,41 @@ fi
 
 # ── 4. database ─────────────────────────────────────────────────────────────
 titolo "Database Firestore (regione $REGION)"
-if "${FIREBASE[@]}" firestore:databases:get "(default)" --project "$PROJECT_ID" >/dev/null 2>&1; then
+
+database_presente() {
+  "${FIREBASE[@]}" firestore:databases:get "(default)" --project "$PROJECT_ID" >/dev/null 2>&1
+}
+crea_database() {
+  "${FIREBASE[@]}" firestore:databases:create "(default)" --location="$REGION" --project "$PROJECT_ID"
+}
+
+if database_presente; then
   avviso "database già presente, lo lascio com'è"
-else
-  if ! "${FIREBASE[@]}" firestore:databases:create "(default)" --location="$REGION" --project "$PROJECT_ID"; then
-    errore "Creazione del database non riuscita.
-   Se l'errore parla di API disattivata, aprila una volta qui e rilancia lo script:
-   https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=$PROJECT_ID"
-  fi
+elif crea_database; then
   ok "database creato"
+else
+  # "An unexpected error has occurred" quasi sempre significa API Firestore
+  # ancora spenta sul progetto. Sono due interruttori, poi si riprova da qui.
+  echo ""
+  avviso "Creazione non riuscita. Quasi sempre è l'API Firestore ancora spenta."
+  echo ""
+  echo "  1) Attiva l'API (pulsante ABILITA, poi aspetta che finisca):"
+  printf '     \033[1;36mhttps://console.cloud.google.com/apis/library/firestore.googleapis.com?project=%s\033[0m\n' "$PROJECT_ID"
+  echo ""
+  echo "  2) Oppure, più diretto, crea il database a mano — è una pagina sola:"
+  printf '     \033[1;36mhttps://console.firebase.google.com/project/%s/firestore\033[0m\n' "$PROJECT_ID"
+  echo "     → Crea database → modalità produzione → posizione $REGION"
+  echo ""
+  for tentativo in $(seq 1 10); do
+    read -r -p "  Premi INVIO quando l'hai fatto (o CTRL-C per uscire)... " _ </dev/tty || true
+    if database_presente; then ok "database presente"; break; fi
+    if crea_database; then ok "database creato"; break; fi
+    avviso "ancora non risulta: se hai appena attivato l'API, dalle qualche secondo"
+    if [ "$tentativo" -eq 10 ]; then
+      errore "Database non creato. Per vedere l'errore vero, senza filtri:
+   npx --yes firebase-tools@15 firestore:databases:create \"(default)\" --location=$REGION --project $PROJECT_ID --debug"
+    fi
+  done
 fi
 
 # ── 5. regole di sicurezza ──────────────────────────────────────────────────
